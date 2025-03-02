@@ -4,3 +4,4 @@
 *.zip
 /app/__pycache__
 /data/affectnet_test
+/src/cnn/logs
