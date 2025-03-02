@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 import time
 import shutil
@@ -19,8 +20,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount the static directory to serve the frontend
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Mount static files on /static
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+
+# Optionally, you can provide a separate root route for a welcome message or redirection
+@app.get("/")
+async def read_index():
+    return FileResponse("static/index.html")
 
 # Ensure upload directories exist
 if not os.path.exists('uploads/voice'):
