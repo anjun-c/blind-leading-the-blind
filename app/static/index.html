@@ -7,7 +7,7 @@
 <body>
   <h1>UNBLIND</h1>
   
-  <!-- Voice Recording Section -->
+  <!-- Voice Recording Section (unchanged) -->
   <section>
     <h2>Voice Recording (WebSocket Streaming)</h2>
     <button id="voiceRecordBtn">Start Voice Recording</button>
@@ -16,10 +16,9 @@
     <div id="transcriptionOutput" style="border:1px solid #ccc; padding: 8px; min-height: 40px;"></div>
   </section>
   
-  <!-- Video Recording Section -->
+  <!-- Video Recording Section (using canvas capture) -->
   <section>
     <h2>Video Recording (WebSocket Streaming)</h2>
-    <!-- This button is still available in case you want to manually toggle -->
     <button id="videoRecordBtn">Start Video Recording</button>
     <p id="videoStatus"></p>
     <h3>Processed Video Frame:</h3>
@@ -27,17 +26,18 @@
   </section>
   
   <script>
-    // Global variables for voice streaming
+    // Global variables for voice streaming (unchanged)
     let voiceRecorder;
     let voiceRecording = false;
-    let voiceSocket; // WebSocket for audio streaming
+    let voiceSocket;
     let voiceStream;
 
-    // Global variables for video streaming
-    let videoRecorder;
+    // Global variables for video streaming using canvas capture
     let videoRecording = false;
-    let videoSocket; // WebSocket for video streaming
+    let videoSocket;
     let videoStream;
+    let videoCaptureInterval;  // holds our interval timer
+    let videoElement;          // hidden video element for playing the stream
 
     const voiceRecordBtn = document.getElementById('voiceRecordBtn');
     const voiceStatus = document.getElementById('voiceStatus');
@@ -47,12 +47,10 @@
     const videoStatus = document.getElementById('videoStatus');
     const processedFrame = document.getElementById('processedFrame');
 
-    // --- Voice Recording Logic ---
+    // --- Voice Recording Logic (unchanged) ---
     voiceRecordBtn.addEventListener('click', async () => {
       if (!voiceRecording) {
-        // Request audio stream once
         voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Open WebSocket connection to the backend endpoint
         voiceSocket = new WebSocket('ws://127.0.0.1:8000/ws/stream_audio');
         voiceSocket.onopen = () => {
           console.log('Voice WebSocket connection opened');
@@ -65,18 +63,17 @@
         voiceSocket.onclose = () => {
           console.log('Voice WebSocket connection closed');
         };
-        // Listen for transcription messages from the server
         voiceSocket.onmessage = (event) => {
           const transcription = event.data;
+          console.log("Received transcription:", transcription);
           transcriptionOutput.innerText = transcription;
-          
-          // Check for control phrases (case-insensitive)
+          // Control logic: if transcription contains control phrases
           if (transcription.toUpperCase().includes("ECHO") && !videoRecording) {
-            console.log("Detected 'ECHO'");
+            console.log("Detected 'ECHO' - starting video stream");
             startVideoStream();
           }
           if (transcription.toUpperCase().includes("STOP") && videoRecording) {
-            console.log("Detected 'STOP'");
+            console.log("Detected 'STOP' - stopping video stream");
             stopVideoStream();
           }
         };
@@ -85,7 +82,6 @@
         voiceRecordBtn.innerText = 'Stop Voice Recording';
         startVoiceRecordingCycle();
       } else {
-        // Stop the voice cycle and close the WebSocket
         voiceRecording = false;
         if (voiceRecorder && voiceRecorder.state !== "inactive") {
           voiceRecorder.stop();
@@ -98,27 +94,24 @@
       }
     });
 
-    // Function for a recording cycle: record for a fixed duration (3 sec), send blob, then restart
     function startVoiceRecordingCycle() {
       if (!voiceRecording) return;
       
-      // Specify MIME type explicitly to encourage a complete container.
       voiceRecorder = new MediaRecorder(voiceStream, { mimeType: "audio/webm;codecs=opus" });
       
       voiceRecorder.ondataavailable = (event) => {
         if (event.data.size > 0 && voiceSocket.readyState === WebSocket.OPEN) {
+          console.log("Sending audio blob of size:", event.data.size);
           voiceSocket.send(event.data);
         }
       };
 
-      // When the recorder stops, restart the cycle if still recording.
       voiceRecorder.onstop = () => {
         if (voiceRecording) {
           setTimeout(startVoiceRecordingCycle, 200);
         }
       };
 
-      // Record for 3 seconds
       voiceRecorder.start();
       setTimeout(() => {
         if (voiceRecorder.state === "recording") {
@@ -127,10 +120,18 @@
       }, 3000);
     }
 
-    // --- Video Recording Logic ---
+    // --- Video Recording Logic Using Canvas Capture ---
     async function startVideoStream() {
       if (videoRecording) return;
+      // Request video (and audio, if needed) stream
       videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // Create a hidden video element to play the stream
+      videoElement = document.createElement('video');
+      videoElement.srcObject = videoStream;
+      videoElement.play();
+      console.log("Video element created and playing.");
+      
+      // Open WebSocket connection for video streaming
       videoSocket = new WebSocket('ws://127.0.0.1:8000/ws/stream_video');
       videoSocket.onopen = () => {
         console.log('Video WebSocket connection opened');
@@ -145,27 +146,49 @@
       };
 
       videoSocket.onmessage = (event) => {
+        console.log("Received processed video frame data, size:", event.data.byteLength);
         const blob = new Blob([event.data], { type: 'image/jpeg' });
+        console.log("Created blob from processed frame, size:", blob.size);
         const url = URL.createObjectURL(blob);
         processedFrame.src = url;
+        // Allow the image to display before revoking the URL
         setTimeout(() => {
+          console.log("Revoking URL:", url);
           URL.revokeObjectURL(url);
-        }, 100);
+        }, 1000);
       };
 
-      videoRecorder = new MediaRecorder(videoStream);
-      videoRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0 && videoSocket.readyState === WebSocket.OPEN) {
-          videoSocket.send(e.data);
+      // Create an offscreen canvas to capture frames
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 240;
+      const ctx = canvas.getContext('2d');
+      
+      // Start capturing frames at 1 frame per second
+      videoCaptureInterval = setInterval(() => {
+        if (!videoRecording) {
+          clearInterval(videoCaptureInterval);
+          return;
         }
-      };
-      videoRecorder.start(1000);
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob && videoSocket.readyState === WebSocket.OPEN) {
+            console.log("Sending captured video frame blob, size:", blob.size);
+            videoSocket.send(blob);
+          } else {
+            console.warn("Blob is null or videoSocket not open.");
+          }
+        }, 'image/jpeg');
+      }, 1000);
+      
       videoRecordBtn.innerText = 'Stop Video Recording';
       videoRecording = true;
     }
 
     function stopVideoStream() {
-      if (videoRecorder) videoRecorder.stop();
+      if (videoCaptureInterval) {
+        clearInterval(videoCaptureInterval);
+      }
       if (videoSocket && videoSocket.readyState === WebSocket.OPEN) {
         videoSocket.close();
       }
@@ -173,6 +196,10 @@
       videoStatus.innerText = 'Video streaming stopped.';
       if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
+      }
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.srcObject = null;
       }
       processedFrame.src = '';
       videoRecording = false;

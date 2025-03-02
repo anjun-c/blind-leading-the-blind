@@ -67,21 +67,7 @@ async def record_video(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
     return {"message": "Video recording saved successfully", "filename": filename}
 
-
-import subprocess
-from fastapi.responses import JSONResponse
-
-@app.post("/api/send_beeps")
-async def send_beeps():
-    try:
-        # Run the beep script located at src\stt\test2.py
-        subprocess.run(["python", "src/stt/test2.py"], check=True)
-        
-        return JSONResponse(content={"message": "Beeps sent successfully"}, status_code=200)
-    except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=500, detail=f"Error executing beep script: {str(e)}")
-
-# WebSocket endpoint for audio streaming using PyAV for conversion
+# WebSocket endpoint for audio streaming using PyAV for conversion (unchanged)
 @app.websocket("/ws/stream_audio")
 async def stream_audio(websocket: WebSocket):
     await websocket.accept()
@@ -93,47 +79,42 @@ async def stream_audio(websocket: WebSocket):
         while True:
             data = await websocket.receive_bytes()
             audio_buffer.extend(data)
+            # Debug: Log size of incoming audio chunk
+            print(f"[Audio] Received chunk of size: {len(data)} bytes")
             
             current_time = time.time()
             if current_time - last_transcription_time >= transcription_interval:
                 try:
-                    # Wrap the accumulated WebM data in a BytesIO object
+                    print("[Audio] Converting accumulated audio data...")
                     input_buffer = io.BytesIO(audio_buffer)
-                    # Open the container using PyAV
                     input_container = av.open(input_buffer, format='webm')
                     
-                    # Prepare an output buffer for WAV data
                     output_buffer = io.BytesIO()
                     output_container = av.open(output_buffer, mode='w', format='wav')
                     
-                    # Locate the first audio stream
                     audio_stream = next((s for s in input_container.streams if s.type == 'audio'), None)
                     if audio_stream is None:
                         raise Exception("No audio stream found in input.")
                     
-                    # Add an output audio stream using PCM S16LE codec
                     output_audio_stream = output_container.add_stream('pcm_s16le', rate=audio_stream.rate)
                     
                     for frame in input_container.decode(audio=0):
-                        frame.pts = None  # reset timestamps
+                        frame.pts = None
                         packet = output_audio_stream.encode(frame)
                         if packet is not None:
                             output_container.mux(packet)
                     
-                    # Flush remaining packets
                     packet = output_audio_stream.encode(None)
                     if packet is not None:
                         output_container.mux(packet)
                     
                     output_container.close()
                     
-                    # Get the WAV data from the output buffer
                     wav_data = output_buffer.getvalue()
-                    
-                    # Write WAV data to temporary file for transcription
                     temp_wav_filepath = os.path.join('uploads', 'voice', "temp_audio.wav")
                     with open(temp_wav_filepath, "wb") as wav_file:
                         wav_file.write(wav_data)
+                    print("[Audio] Audio conversion successful. WAV size:", len(wav_data))
                 except Exception as e:
                     await websocket.send_text("Error converting audio with PyAV: " + str(e))
                     print("Error converting audio with PyAV:", e)
@@ -154,11 +135,13 @@ async def stream_audio(websocket: WebSocket):
     except WebSocketDisconnect:
         print("Audio stream disconnected")
 
-# Helper function to process a single video frame (unchanged)
+# Helper function to process a single video frame with added debugging
 def process_frame(frame, model):
+    print("[Video] Received frame for processing.")
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+    print(f"[Video] Detected {len(faces)} faces.")
     label_map = {0: 'Angry', 1: 'Disgust', 2: 'Fear', 3: 'Happy', 4: 'Sad', 5: 'Surprise', 6: 'Neutral'}
     for (x, y, w, h) in faces:
         cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
@@ -166,6 +149,7 @@ def process_frame(frame, model):
         try:
             face_resized = cv2.resize(face_roi, (48, 48))
         except Exception as e:
+            print(f"[Video] Error resizing face ROI: {e}")
             continue
         face_normalized = face_resized.astype("float32") / 255.0
         input_img = np.expand_dims(face_normalized, axis=0)
@@ -174,7 +158,7 @@ def process_frame(frame, model):
         pred_class = np.argmax(prediction, axis=1)[0]
         pred_label = label_map.get(pred_class, "Unknown")
         cv2.putText(frame, f"Prediction: {pred_label}", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-        print(f"Prediction: {pred_label}")
+        print(f"[Video] Prediction: {pred_label}")
     return frame
 
 @app.websocket("/ws/stream_video")
@@ -186,14 +170,20 @@ async def stream_video(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_bytes()
+            print(f"[Video] Received video data chunk of size: {len(data)} bytes")
             nparr = np.frombuffer(data, np.uint8)
             frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if frame is None:
+                print("[Video] Frame decoding failed.")
                 continue
+            print("[Video] Frame decoded successfully. Shape:", frame.shape)
             processed_frame = process_frame(frame, model)
             ret, encoded_img = cv2.imencode('.jpg', processed_frame)
             if ret:
+                print("[Video] Frame encoded to JPEG successfully. Bytes:", len(encoded_img.tobytes()))
                 await websocket.send_bytes(encoded_img.tobytes())
+            else:
+                print("[Video] Frame encoding to JPEG failed.")
     except WebSocketDisconnect:
         print("Video stream disconnected")
 
