@@ -18,7 +18,7 @@ app = FastAPI()
 # Load the CNN model
 try:
     model = model_build()
-    model.load_weights('src/cnn/model_weights_fer2013.weights.h5')
+    model.load_weights('src/cnn/model_fer2013_weights.weights.h5')
 except Exception as e:
     print("Error: Could not load model", e)
 
@@ -151,15 +151,28 @@ def process_frame(frame, model):
         except Exception as e:
             print(f"[Video] Error resizing face ROI: {e}")
             continue
+        # Normalize pixel values
         face_normalized = face_resized.astype("float32") / 255.0
+        
+        # Debug: print ROI stats
+        print(f"[Video] Face ROI stats: shape={face_normalized.shape}, min={face_normalized.min()}, max={face_normalized.max()}, mean={face_normalized.mean()}")
+        
         input_img = np.expand_dims(face_normalized, axis=0)
         input_img = np.expand_dims(input_img, axis=-1)
+        
+        # Check input shape
+        print(f"[Video] Input image shape: {input_img.shape}")
+        
+        # Make a prediction
         prediction = model.predict(input_img)
+        print(f"[Video] Raw prediction: {prediction}")
         pred_class = np.argmax(prediction, axis=1)[0]
         pred_label = label_map.get(pred_class, "Unknown")
-        cv2.putText(frame, f"Prediction: {pred_label}", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+        cv2.putText(frame, f"Prediction: {pred_label}", (x, y-10), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         print(f"[Video] Prediction: {pred_label}")
     return frame
+
 
 @app.websocket("/ws/stream_video")
 async def stream_video(websocket: WebSocket):
