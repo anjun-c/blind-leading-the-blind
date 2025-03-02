@@ -48,6 +48,21 @@ async def record_video(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
     return {"message": "Video recording saved successfully", "filename": filename}
 
+
+import subprocess
+from fastapi.responses import JSONResponse
+
+@app.post("/api/send_beeps")
+async def send_beeps():
+    try:
+        # Run the beep script located at src\stt\test2.py
+        subprocess.run(["python", "src/stt/test2.py"], check=True)
+        
+        return JSONResponse(content={"message": "Beeps sent successfully"}, status_code=200)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=500, detail=f"Error executing beep script: {str(e)}")
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
