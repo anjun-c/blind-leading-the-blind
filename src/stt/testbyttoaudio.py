@@ -29,6 +29,6 @@ def transcribe_audio(file_path):
     
     return transcription
 
-audio_file = "hi.wav"
-text = transcribe_audio(audio_file)
-print("Transcription: ", text)
+#audio_file = "hi.wav"
+#text = transcribe_audio(audio_file)
+#print("Transcription: ", text)
