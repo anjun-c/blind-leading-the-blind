@@ -19,6 +19,7 @@
   <!-- Video Recording Section -->
   <section>
     <h2>Video Recording (WebSocket Streaming)</h2>
+    <!-- This button is still available in case you want to manually toggle -->
     <button id="videoRecordBtn">Start Video Recording</button>
     <p id="videoStatus"></p>
     <h3>Processed Video Frame:</h3>
@@ -26,16 +27,27 @@
   </section>
   
   <script>
-    // Voice recording logic with stop/restart cycle for finalized segments
+    // Global variables for voice streaming
     let voiceRecorder;
     let voiceRecording = false;
     let voiceSocket; // WebSocket for audio streaming
     let voiceStream;
 
+    // Global variables for video streaming
+    let videoRecorder;
+    let videoRecording = false;
+    let videoSocket; // WebSocket for video streaming
+    let videoStream;
+
     const voiceRecordBtn = document.getElementById('voiceRecordBtn');
     const voiceStatus = document.getElementById('voiceStatus');
     const transcriptionOutput = document.getElementById('transcriptionOutput');
+    
+    const videoRecordBtn = document.getElementById('videoRecordBtn');
+    const videoStatus = document.getElementById('videoStatus');
+    const processedFrame = document.getElementById('processedFrame');
 
+    // --- Voice Recording Logic ---
     voiceRecordBtn.addEventListener('click', async () => {
       if (!voiceRecording) {
         // Request audio stream once
@@ -55,14 +67,25 @@
         };
         // Listen for transcription messages from the server
         voiceSocket.onmessage = (event) => {
-          transcriptionOutput.innerText = event.data;
+          const transcription = event.data;
+          transcriptionOutput.innerText = transcription;
+          
+          // Check for control phrases (case-insensitive)
+          if (transcription.toUpperCase().includes("ECHO") && !videoRecording) {
+            console.log("Detected 'ECHO'");
+            startVideoStream();
+          }
+          if (transcription.toUpperCase().includes("STOP") && videoRecording) {
+            console.log("Detected 'STOP'");
+            stopVideoStream();
+          }
         };
         
         voiceRecording = true;
         voiceRecordBtn.innerText = 'Stop Voice Recording';
         startVoiceRecordingCycle();
       } else {
-        // Stop the cycle and close the WebSocket
+        // Stop the voice cycle and close the WebSocket
         voiceRecording = false;
         if (voiceRecorder && voiceRecorder.state !== "inactive") {
           voiceRecorder.stop();
@@ -75,8 +98,7 @@
       }
     });
 
-    // This function starts a recording cycle that records for a fixed duration (e.g., 3 seconds),
-    // stops to finalize the blob, sends it over the WebSocket, then restarts if recording is still active.
+    // Function for a recording cycle: record for a fixed duration (3 sec), send blob, then restart
     function startVoiceRecordingCycle() {
       if (!voiceRecording) return;
       
@@ -89,7 +111,7 @@
         }
       };
 
-      // Restart the cycle when the recorder stops.
+      // When the recorder stops, restart the cycle if still recording.
       voiceRecorder.onstop = () => {
         if (voiceRecording) {
           setTimeout(startVoiceRecordingCycle, 200);
@@ -105,60 +127,63 @@
       }, 3000);
     }
 
-    // Video recording logic with WebSocket streaming (unchanged)
-    let videoRecorder;
-    let videoRecording = false;
-    let videoSocket; // WebSocket for video streaming
-    let videoStream;
+    // --- Video Recording Logic ---
+    async function startVideoStream() {
+      if (videoRecording) return;
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      videoSocket = new WebSocket('ws://127.0.0.1:8000/ws/stream_video');
+      videoSocket.onopen = () => {
+        console.log('Video WebSocket connection opened');
+        videoStatus.innerText = 'Streaming video...';
+      };
+      videoSocket.onerror = (err) => {
+        console.error('Video WebSocket error: ', err);
+        videoStatus.innerText = 'Error in video stream.';
+      };
+      videoSocket.onclose = () => {
+        console.log('Video WebSocket connection closed');
+      };
 
-    const videoRecordBtn = document.getElementById('videoRecordBtn');
-    const videoStatus = document.getElementById('videoStatus');
-    const processedFrame = document.getElementById('processedFrame');
+      videoSocket.onmessage = (event) => {
+        const blob = new Blob([event.data], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        processedFrame.src = url;
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 100);
+      };
 
+      videoRecorder = new MediaRecorder(videoStream);
+      videoRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0 && videoSocket.readyState === WebSocket.OPEN) {
+          videoSocket.send(e.data);
+        }
+      };
+      videoRecorder.start(1000);
+      videoRecordBtn.innerText = 'Stop Video Recording';
+      videoRecording = true;
+    }
+
+    function stopVideoStream() {
+      if (videoRecorder) videoRecorder.stop();
+      if (videoSocket && videoSocket.readyState === WebSocket.OPEN) {
+        videoSocket.close();
+      }
+      videoRecordBtn.innerText = 'Start Video Recording';
+      videoStatus.innerText = 'Video streaming stopped.';
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+      processedFrame.src = '';
+      videoRecording = false;
+    }
+
+    // Optional manual control for video recording via button click
     videoRecordBtn.addEventListener('click', async () => {
       if (!videoRecording) {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        videoSocket = new WebSocket('ws://127.0.0.1:8000/ws/stream_video');
-        videoSocket.onopen = () => {
-          console.log('Video WebSocket connection opened');
-          videoStatus.innerText = 'Streaming video...';
-        };
-        videoSocket.onerror = (err) => {
-          console.error('Video WebSocket error: ', err);
-          videoStatus.innerText = 'Error in video stream.';
-        };
-        videoSocket.onclose = () => {
-          console.log('Video WebSocket connection closed');
-        };
-
-        videoSocket.onmessage = (event) => {
-          const blob = new Blob([event.data], { type: 'image/jpeg' });
-          const url = URL.createObjectURL(blob);
-          processedFrame.src = url;
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-          }, 100);
-        };
-
-        videoRecorder = new MediaRecorder(videoStream);
-        videoRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0 && videoSocket.readyState === WebSocket.OPEN) {
-            videoSocket.send(e.data);
-          }
-        };
-        videoRecorder.start(1000);
-        videoRecordBtn.innerText = 'Stop Video Recording';
-        videoRecording = true;
+        await startVideoStream();
       } else {
-        videoRecorder.stop();
-        if (videoSocket && videoSocket.readyState === WebSocket.OPEN) {
-          videoSocket.close();
-        }
-        videoRecordBtn.innerText = 'Start Video Recording';
-        videoStatus.innerText = 'Video streaming stopped.';
-        videoStream.getTracks().forEach(track => track.stop());
-        processedFrame.src = '';
-        videoRecording = false;
+        stopVideoStream();
       }
     });
   </script>
