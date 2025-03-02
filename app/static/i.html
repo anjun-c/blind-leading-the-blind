@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+          font-family: Arial, sans-serif;
+          background-color: #f0f0f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          margin: 0;
+      }
+
+      .container {
+          text-align: center;
+          background-color: white;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .title {
+          color: #333;
+          margin-bottom: 20px;
+      }
+
+      .recordButton {
+          background-color: #007bff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          padding: 10px 20px;
+          cursor: pointer;
+          font-size: 16px;
+          transition: background-color 0.3s ease;
+      }
+
+      .recordButton:hover {
+          background-color: #0056b3;
+      }
+    </style>
+    <title>Auto-Start Audio Recorder</title>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Auto-Start Audio Recorder</h1>
+        <button id="stopButton" class="recordButton" disabled>Stop Recording</button>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        
+        const stopButton = document.getElementById('stopButton');
+
+        async function init() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await saveFile(audioBlob);
+                };
+
+                // Start recording immediately when the page loads
+                mediaRecorder.start();
+                audioChunks = [];
+                stopButton.disabled = false;
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+            }
+        }
+
+        async function saveFile(blob) {
+            try {
+                const handle = await window.showDirectoryPicker(); // Ask for permission to save
+                const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                const fileHandle = await handle.getFileHandle(`recording-${timestamp}.wav`, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                console.log("File saved successfully!");
+            } catch (error) {
+                console.error("File save error:", error);
+            }
+        }
+
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            stopButton.disabled = true;
+            console.log('Recording stopped.');
+        });
+
+        window.onload = init;  // Start recording as soon as the page is loaded
+    </script>
+</body>
+</html>
