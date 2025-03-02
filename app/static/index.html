@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Voice and Video Recording</title>
+</head>
+<body>
+  <h1>Voice and Video Recording</h1>
+
+  <!-- Voice Recording Section -->
+  <section>
+    <h2>Voice Recording</h2>
+    <button id="voiceRecordBtn">Start Voice Recording</button>
+    <p id="voiceStatus"></p>
+  </section>
+
+  <!-- Video Recording Section -->
+  <section>
+    <h2>Video Recording</h2>
+    <video id="videoPreview" width="320" height="240" autoplay muted></video>
+    <br>
+    <button id="videoRecordBtn">Start Video Recording</button>
+    <p id="videoStatus"></p>
+  </section>
+
+  <script>
+    // Voice recording logic
+    let voiceRecorder;
+    let voiceChunks = [];
+    let voiceRecording = false;
+
+    const voiceRecordBtn = document.getElementById('voiceRecordBtn');
+    const voiceStatus = document.getElementById('voiceStatus');
+
+    voiceRecordBtn.addEventListener('click', async () => {
+      if (!voiceRecording) {
+        // Start voice recording
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        voiceRecorder = new MediaRecorder(stream);
+        voiceRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            voiceChunks.push(e.data);
+          }
+        };
+        voiceRecorder.onstop = async () => {
+          const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+          voiceChunks = [];
+          // Upload the recording to the server
+          const formData = new FormData();
+          formData.append('file', blob, 'voice_recording.webm');
+          const response = await fetch('/api/record_voice', {
+            method: 'POST',
+            body: formData
+          });
+          const result = await response.json();
+          voiceStatus.innerText = result.message;
+        };
+        voiceRecorder.start();
+        voiceRecordBtn.innerText = 'Stop Voice Recording';
+        voiceStatus.innerText = 'Recording...';
+        voiceRecording = true;
+      } else {
+        // Stop voice recording
+        voiceRecorder.stop();
+        voiceRecordBtn.innerText = 'Start Voice Recording';
+        voiceRecording = false;
+      }
+    });
+
+    // Video recording logic
+    let videoRecorder;
+    let videoChunks = [];
+    let videoRecording = false;
+    let videoStream;
+
+    const videoRecordBtn = document.getElementById('videoRecordBtn');
+    const videoStatus = document.getElementById('videoStatus');
+    const videoPreview = document.getElementById('videoPreview');
+
+    videoRecordBtn.addEventListener('click', async () => {
+      if (!videoRecording) {
+        // Start video recording
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        videoPreview.srcObject = videoStream;
+        videoRecorder = new MediaRecorder(videoStream);
+        videoRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            videoChunks.push(e.data);
+          }
+        };
+        videoRecorder.onstop = async () => {
+          const blob = new Blob(videoChunks, { type: 'video/webm' });
+          videoChunks = [];
+          // Upload the video recording to the server
+          const formData = new FormData();
+          formData.append('file', blob, 'video_recording.webm');
+          const response = await fetch('/api/record_video', {
+            method: 'POST',
+            body: formData
+          });
+          const result = await response.json();
+          videoStatus.innerText = result.message;
+          // Stop all video stream tracks and clear the preview
+          videoStream.getTracks().forEach(track => track.stop());
+          videoPreview.srcObject = null;
+        };
+        videoRecorder.start();
+        videoRecordBtn.innerText = 'Stop Video Recording';
+        videoStatus.innerText = 'Recording...';
+        videoRecording = true;
+      } else {
+        // Stop video recording
+        videoRecorder.stop();
+        videoRecordBtn.innerText = 'Start Video Recording';
+        videoRecording = false;
+      }
+    });
+  </script>
+</body>
+</html>

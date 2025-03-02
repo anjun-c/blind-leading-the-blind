@@ -1,0 +1,6 @@
+/data/fer2013/test
+/data/fer2013/train
+/data/affectnet
+*.zip
+/app/__pycache__
+/data/affectnet_test
