@@ -33,7 +33,7 @@ const About = () => {
     <section className="about-section">
       <h2>About Us</h2>
       <p>
-        Welcome to our platform! We are dedicated to hleping the visually impaired and have created
+        Welcome to our platform! We are dedicated to helping the visually impaired and have created
         an AI that can help them understand the full context of a conversation through relaying the
         facial expressions of the person they are talking to.
       </p>

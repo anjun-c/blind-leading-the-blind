@@ -1,77 +1,94 @@
 /* UnblindPage.css */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+}
+
 .unblind-container {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background-color: #f9f9f9;
-    position: relative;
-  }
-  
-  .back-button {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .back-button:hover {
-    background-color: #0056b3;
-  }
-  
-  .unblind-container h1 {
-    text-align: center;
-    color: #333;
-    margin-bottom: 20px;
-  }
-  
-  .unblind-container section {
-    margin-bottom: 30px;
-  }
-  
-  .unblind-container h2 {
-    color: #555;
-    margin-bottom: 15px;
-  }
-  
-  .unblind-container button {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .unblind-container button:hover {
-    background-color: #0056b3;
-  }
-  
-  .unblind-container p {
-    margin-top: 15px;
-    color: #777;
-    font-size: 16px;
-  }
-  
-  .unblind-container video {
-    display: block;
-    margin: 20px auto;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
+  width: 100vw; /* Full viewport width */
+  padding: 20px;
+  box-sizing: border-box;
+  background: linear-gradient(to left, #ADD8E6, #E6E6FA); /* Gradient from light blue to light purple */
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  top: 5px;
+  left: 20px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007bff;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
+
+.unblind-container h1 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 2.5em;
+}
+
+.unblind-container section {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+}
+
+.unblind-container h2 {
+  color: #555;
+  margin-bottom: 20px;
+  font-size: 1.75em;
+}
+
+.unblind-container button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 8px;
+  background-color: #0056b3;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.unblind-container button:hover {
+  background-color: #0056b3;
+}
+
+.unblind-container button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.unblind-container p {
+  margin-top: 20px;
+  color: #777;
+  font-size: 16px;
+}
+
+.unblind-container video {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

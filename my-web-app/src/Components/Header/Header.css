@@ -1,4 +1,4 @@
-.header {
+/* .header {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -23,4 +23,27 @@
   .nav a:hover {
     color: #007BFF;
   }
-  
+   */
+   /* Header.css */
+/* Header.css */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  position: relative;
+}
+
+
+.back-button:hover {
+  color: #0056b3;
+}
+
+.logo {
+  margin: 0;
+  font-size: 34px;
+  color: #333;
+}
+

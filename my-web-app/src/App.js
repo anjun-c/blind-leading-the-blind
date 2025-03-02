@@ -32,7 +32,7 @@ import HeroSection from './Components/HeroSection/HeroSection';
 import Features from './Components/Features/Features';
 //import Gallery from './Components/Gallery/Gallery';
 // import Footer from './Components/Footer/Footer';
-import UnblindPage from './Components/UnblindPage/UnblindPage'; // New component for Unblind functionality
+import UnblindPage from './Components/UnblindPage/UnblindPage'; 
 import './App.css';
 
 const App = () => {

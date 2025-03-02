@@ -212,7 +212,7 @@ const UnblindComponent = () => {
       <h1>UNBLIND</h1>
 
       <section>
-        <h2>Voice Recording (WebSocket Streaming)</h2>
+        <h2>Voice Recording</h2>
         <button id="voiceRecordBtn" onClick={handleVoiceRecord}>
           {voiceRecording ? 'Stop Voice Recording' : 'Start Voice Recording'}
         </button>
@@ -220,7 +220,7 @@ const UnblindComponent = () => {
       </section>
 
       <section>
-        <h2>Video Recording (WebSocket Streaming)</h2>
+        <h2>Video Recording</h2>
         <video ref={videoRef} id="videoPreview" width="320" height="240" autoPlay muted></video>
         <br />
         <button id="videoRecordBtn" onClick={handleVideoRecord}>

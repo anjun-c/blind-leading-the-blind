@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UnblindPage.css'; // Import the CSS file
 
+
+
 const UnblindPage = () => {
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [videoRecording, setVideoRecording] = useState(false);
@@ -103,11 +105,9 @@ const UnblindPage = () => {
 
   return (
     <div className="unblind-container">
-      <button className="back-button" onClick={handleBack}>Back</button>
-      <h1>UNBLIND</h1>
 
       <section>
-        <h2>Voice Recording (WebSocket Streaming)</h2>
+        <h2>Voice Recording</h2>
         <button id="voiceRecordBtn" onClick={handleVoiceRecord}>
           {voiceRecording ? 'Stop Voice Recording' : 'Start Voice Recording'}
         </button>
@@ -115,7 +115,7 @@ const UnblindPage = () => {
       </section>
 
       <section>
-        <h2>Video Recording (WebSocket Streaming)</h2>
+        <h2>Video Recording</h2>
         <video ref={videoRef} id="videoPreview" width="320" height="240" autoPlay muted></video>
         <br />
         <button id="videoRecordBtn" onClick={handleVideoRecord}>
