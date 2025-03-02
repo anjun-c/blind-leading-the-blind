@@ -1,3 +1,6 @@
+/__pycache__
+/node_modules
+/my-web-app/node_modules
 /data/fer2013/test
 /data/fer2013/train
 /data/affectnet
@@ -5,3 +8,4 @@
 /app/__pycache__
 /data/affectnet_test
 /src/cnn/logs
+/

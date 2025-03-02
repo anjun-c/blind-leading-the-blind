@@ -1,0 +1,28 @@
+.hero {
+    text-align: center;
+    height: 37vh;
+    padding: 100px 25px;
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("vackground-com-uAvq7gFQecc-unsplash.jpg") no-repeat center center/cover;
+    color: #fff;
+  }
+  
+  .hero h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+  
+  .hero p {
+    font-size: 24px;
+    margin-bottom: 40px;
+  }
+  
+  .cta-button {
+    padding: 20px 35px;
+    font-size: 18px;
+    color: #fff;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  

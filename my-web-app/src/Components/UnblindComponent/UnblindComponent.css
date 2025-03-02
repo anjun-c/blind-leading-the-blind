@@ -1,0 +1,52 @@
+/* UnblindComponent.css */
+.unblind-container {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .unblind-container h1 {
+    text-align: center;
+    color: #333;
+  }
+  
+  .unblind-container section {
+    margin-bottom: 20px;
+  }
+  
+  .unblind-container h2 {
+    color: #555;
+  }
+  
+  .unblind-container button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .unblind-container button:hover {
+    background-color: #0056b3;
+  }
+  
+  .unblind-container p {
+    margin-top: 10px;
+    color: #777;
+  }
+  
+  .unblind-container video {
+    display: block;
+    margin: 0 auto;
+    border-radius: 4px;
+  }
+  

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -8,7 +8,7 @@ import shutil
 
 app = FastAPI()
 
-# Optional: if you plan to allow cross-origin requests (e.g., during development or if hosting separately)
+# Allow cross-origin requests if needed
 origins = [
     "http://localhost:8000",  # Adjust if your frontend runs on a different port or domain
 ]
@@ -23,7 +23,7 @@ app.add_middleware(
 # Mount static files on /static
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
-# Optionally, you can provide a separate root route for a welcome message or redirection
+# Serve index.html at the root
 @app.get("/")
 async def read_index():
     return FileResponse("static/index.html")
@@ -34,6 +34,7 @@ if not os.path.exists('uploads/voice'):
 if not os.path.exists('uploads/video'):
     os.makedirs('uploads/video')
 
+# Existing file upload endpoints for audio and video recordings
 @app.post("/api/record_voice")
 async def record_voice(file: UploadFile = File(...)):
     if file.filename == "":
@@ -68,6 +69,34 @@ async def send_beeps():
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"Error executing beep script: {str(e)}")
 
+# websocket
+@app.websocket("/ws/stream_audio")
+async def stream_audio(websocket: WebSocket):
+    await websocket.accept()
+    filename = f"stream_audio_{int(time.time())}.webm"
+    filepath = os.path.join('uploads', 'voice', filename)
+    with open(filepath, "wb") as audio_file:
+        try:
+            while True:
+                # Expecting binary data from the client
+                data = await websocket.receive_bytes()
+                audio_file.write(data)
+        except WebSocketDisconnect:
+            print("Audio stream disconnected")
+
+@app.websocket("/ws/stream_video")
+async def stream_video(websocket: WebSocket):
+    await websocket.accept()
+    filename = f"stream_video_{int(time.time())}.webm"
+    filepath = os.path.join('uploads', 'video', filename)
+    with open(filepath, "wb") as video_file:
+        try:
+            while True:
+                # Expecting binary data from the client
+                data = await websocket.receive_bytes()
+                video_file.write(data)
+        except WebSocketDisconnect:
+            print("Video stream disconnected")
 
 if __name__ == '__main__':
     import uvicorn
