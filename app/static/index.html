@@ -3,30 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <title>UNBLIND</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 20px;
+    }
+    .section {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      flex: 1;
+      min-width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .section h2 {
+      color: #444;
+    }
+    .section button {
+      background: #007BFF;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      margin: 10px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .section button:hover {
+      background: #0056b3;
+    }
+    #processedFrame {
+      width: 640px;
+      height: 480px;
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+    }
+    #transcriptionOutput {
+      background: #e9e9e9;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      min-height: 40px;
+    }
+  </style>
 </head>
 <body>
   <h1>UNBLIND</h1>
-  
-  <!-- Voice Recording Section (unchanged) -->
-  <section>
-    <h2>Voice Recording (WebSocket Streaming)</h2>
-    <button id="voiceRecordBtn">Start Voice Recording</button>
-    <p id="voiceStatus"></p>
-    <h3>Transcription:</h3>
-    <div id="transcriptionOutput" style="border:1px solid #ccc; padding: 8px; min-height: 40px;"></div>
-  </section>
-  
-  <!-- Video Recording Section (using canvas capture) -->
-  <section>
-    <h2>Video Recording (WebSocket Streaming)</h2>
-    <button id="videoRecordBtn">Start Video Recording</button>
-    <p id="videoStatus"></p>
-    <h3>Processed Video Frame:</h3>
-    <img id="processedFrame" width="320" height="240" alt="Processed Video Frame" style="border:1px solid #ccc;">
-  </section>
+  <div class="container">
+    <!-- Voice Recording Section -->
+    <div class="section" id="voiceSection">
+      <h2>Voice Recording (WebSocket Streaming)</h2>
+      <button id="voiceRecordBtn">Start Voice Recording</button>
+      <p id="voiceStatus"></p>
+      <h3>Transcription:</h3>
+      <div id="transcriptionOutput"></div>
+    </div>
+    
+    <!-- Video Recording Section -->
+    <div class="section" id="videoSection">
+      <h2>Video Recording (WebSocket Streaming)</h2>
+      <button id="videoRecordBtn">Start Video Recording</button>
+      <p id="videoStatus"></p>
+      <h3>Processed Video Frame:</h3>
+      <img id="processedFrame" alt="Processed Video Frame">
+    </div>
+  </div>
   
   <script>
-    // Global variables for voice streaming (unchanged)
+    // Global variables for voice streaming
     let voiceRecorder;
     let voiceRecording = false;
     let voiceSocket;
@@ -36,8 +93,8 @@
     let videoRecording = false;
     let videoSocket;
     let videoStream;
-    let videoCaptureInterval;  // holds our interval timer
-    let videoElement;          // hidden video element for playing the stream
+    let videoCaptureInterval;
+    let videoElement;
 
     const voiceRecordBtn = document.getElementById('voiceRecordBtn');
     const voiceStatus = document.getElementById('voiceStatus');
@@ -47,7 +104,7 @@
     const videoStatus = document.getElementById('videoStatus');
     const processedFrame = document.getElementById('processedFrame');
 
-    // --- Voice Recording Logic (unchanged) ---
+    // --- Voice Recording Logic ---
     voiceRecordBtn.addEventListener('click', async () => {
       if (!voiceRecording) {
         voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -123,15 +180,12 @@
     // --- Video Recording Logic Using Canvas Capture ---
     async function startVideoStream() {
       if (videoRecording) return;
-      // Request video (and audio, if needed) stream
       videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      // Create a hidden video element to play the stream
       videoElement = document.createElement('video');
       videoElement.srcObject = videoStream;
       videoElement.play();
       console.log("Video element created and playing.");
       
-      // Open WebSocket connection for video streaming
       videoSocket = new WebSocket('ws://127.0.0.1:8000/ws/stream_video');
       videoSocket.onopen = () => {
         console.log('Video WebSocket connection opened');
@@ -151,20 +205,17 @@
         console.log("Created blob from processed frame, size:", blob.size);
         const url = URL.createObjectURL(blob);
         processedFrame.src = url;
-        // Allow the image to display before revoking the URL
         setTimeout(() => {
           console.log("Revoking URL:", url);
           URL.revokeObjectURL(url);
         }, 1000);
       };
 
-      // Create an offscreen canvas to capture frames
       const canvas = document.createElement('canvas');
       canvas.width = 320;
       canvas.height = 240;
       const ctx = canvas.getContext('2d');
       
-      // Start capturing frames at 1 frame per second
       videoCaptureInterval = setInterval(() => {
         if (!videoRecording) {
           clearInterval(videoCaptureInterval);
@@ -205,7 +256,6 @@
       videoRecording = false;
     }
 
-    // Optional manual control for video recording via button click
     videoRecordBtn.addEventListener('click', async () => {
       if (!videoRecording) {
         await startVideoStream();

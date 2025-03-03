@@ -18,7 +18,7 @@ app = FastAPI()
 # Load the CNN model
 try:
     model = model_build()
-    model.load_weights('src/cnn/model_fer2013_weights.weights.h5')
+    model.load_weights('model_fer2013_weights.weights.h5')
 except Exception as e:
     print("Error: Could not load model", e)
 
